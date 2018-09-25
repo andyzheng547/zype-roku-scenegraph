@@ -132,6 +132,10 @@ Sub SetHomeScene(contentID = invalid, mediaType = invalid)
     m.AuthSelection.observeField("itemSelected", m.port)
     m.AuthSelection.observeField("planSelected", m.port)
 
+    m.PurchaseScreen = m.scene.findNode("PurchaseScreen")
+    m.PurchaseScreen.observeField("itemSelected", m.port)
+    m.PurchaseScreen.observeField("purchaseButtonSelected", m.port)
+
     m.MyLibrary = m.scene.findNode("MyLibrary")
     m.MyLibrary.observeField("visible", m.port)
     m.MyLibrary.observeField("paginatorSelected", m.port)
@@ -248,6 +252,9 @@ Sub SetHomeScene(contentID = invalid, mediaType = invalid)
     end if
 
     print "App done loading"
+
+    purchases = m.roku_store_service.getPurchases()
+    stop
 
     while(true)
         msg = wait(0, m.port)
@@ -381,7 +388,7 @@ Sub SetHomeScene(contentID = invalid, mediaType = invalid)
                 m.loadingIndicator.control = "start"
                 SearchQuery(m.scene.SearchString)
                 m.loadingIndicator.control = "stop"
-            else if (msg.getNode() = "FavoritesDetailsScreen" or msg.getNode() = "SearchDetailsScreen" or msg.getNode() = "MyLibraryDetailsScreen" or msg.getNode() = "DetailsScreen" or msg.getNode() = "AuthSelection" or msg.getNode() = "UniversalAuthSelection" or msg.getNode() = "SignInScreen" or msg.getNode() = "SignUpScreen" or msg.getNode() = "AccountScreen") and msg.getField() = "itemSelected" then
+            else if (msg.getNode() = "FavoritesDetailsScreen" or msg.getNode() = "SearchDetailsScreen" or msg.getNode() = "MyLibraryDetailsScreen" or msg.getNode() = "DetailsScreen" or msg.getNode() = "AuthSelection" or msg.getNode() = "UniversalAuthSelection" or msg.getNode() = "SignInScreen" or msg.getNode() = "SignUpScreen" or msg.getNode() = "AccountScreen" or msg.getNode() = "PurchaseScreen") and msg.getField() = "itemSelected" then
 
                 ' access component node content
                 if msg.getNode() = "FavoritesDetailsScreen"
@@ -402,6 +409,8 @@ Sub SetHomeScene(contentID = invalid, mediaType = invalid)
                     lclScreen = m.SignUpScreen
                 else if msg.getNode() = "AccountScreen"
                     lclScreen = m.AccountScreen
+                else if msg.getNode() = "PurchaseScreen"
+                    lclScreen = m.PurchaseScreen
                 end if
 
                 index = msg.getData()
@@ -421,6 +430,18 @@ Sub SetHomeScene(contentID = invalid, mediaType = invalid)
               else
                 if m.global.auth.isLoggedIn or m.global.native_to_universal_subscription = false then handleNativeToUniversal() else m.scene.transitionTo = "SignUpScreen"
               end if
+
+            else if msg.getNode() = "PurchaseScreen" and msg.getField() = "purchaseButtonSelected" then
+              buttonRole = m.PurchaseScreen.itemSelectedRole
+              buttonTarget = m.PurchaseScreen.itemSelectedTarget
+
+              if buttonRole = "confirm_purchase"
+                if m.global.auth.isLoggedIn or m.global.native_tvod = false then handleNativePurchase() else m.scene.transitionTo = "SignUpScreen"
+              else if buttonRole = "cancel"
+                m.detailsScreen.content = m.detailsScreen.content
+                m.scene.goBackToNonAuth = true
+              end if
+
             else if msg.getField() = "state"
                 state = msg.getData()
                 m.akamai_service.handleVideoEvents(state, m.AKaMAAnalyticsPlugin.pluginInstance, m.AKaMAAnalyticsPlugin.sessionTimer, m.AKaMAAnalyticsPlugin.lastHeadPosition)
@@ -1256,7 +1277,13 @@ function handleButtonEvents(index, screen)
           m.SignUpScreen.reset = true
           m.scene.goBackToNonAuth = true
 
-          handleNativeToUniversal()
+          ' Add logic to determine if subscribing or purchasing
+          
+          if m.detailsScreen.content.subscriptionRequired
+            handleNativeToUniversal()
+          else if m.detailsScreen.content.purchaseRequired
+            handleNativePurchase()
+          end if
         else
           EndLoader()
           m.SignUpScreen.setFocus(true)
@@ -1325,6 +1352,19 @@ function handleButtonEvents(index, screen)
 
     else if button_role = "transition" and button_target = "AuthSelection"
       m.scene.transitionTo = "AuthSelection"
+    else if button_role = "transition" and button_target = "PurchaseScreen"
+      ' TODO: Add logic for determining what sku/code to purchase
+
+      ' Use hard coded consumable for now
+      consumables = m.roku_store_service.getConsumables()
+      purchaseItem = consumables[0]
+
+      m.PurchaseScreen.purchaseItem = purchaseItem
+      m.PurchaseScreen.itemName = screen.content.title
+      m.PurchaseScreen.videoId = screen.content.id
+
+      m.scene.transitionTo = "PurchaseScreen"
+
     else if button_role = "transition" and button_target = "UniversalAuthSelection"
       if m.global.enable_device_linking = false then m.scene.transitionTo = "SignInScreen" else m.scene.transitionTo = "UniversalAuthSelection"
     else if button_role = "transition" and button_target = "DeviceLinking"
@@ -1436,6 +1476,31 @@ function handleNativeToUniversal() as void
   end if
 end function
 
+function handleNativePurchase() as void
+  m.PurchaseScreen.visible = false
+  StartLoader()
+
+  ' Get updated user info
+  user_info = m.current_user.getInfo()
+  m.auth_state_service.updateAuthWithUserInfo(user_info)
+
+  order = [{
+    code: m.PurchaseScreen.purchaseItem.code,
+    qty: 1
+  }]
+
+  purchase_item = m.roku_store_service.makePurchase(order)
+  EndLoader()
+  m.PurchaseScreen.visible = true
+  m.PurchaseScreen.setFocus(true)
+
+  if purchase_item.success
+    stop
+  else
+    m.PurchaseScreen.findNode("PurchaseButtons").setFocus(true)
+    CreateDialog(m.scene, "Incomplete", "Was not able to complete purchase. Please try again later.", ["Close"])
+  end if
+end function
 
 ' Seting details screen's RemakeVideoPlayer value to true recreates Video component
 '     Roku Video component performance degrades significantly after multiple uses, so we make a new one
@@ -1558,6 +1623,7 @@ function SetFeatures() as void
     swaf: m.app.subscribe_to_watch_ad_free,
     enable_lock_icons: m.app.enable_lock_icons,
     native_to_universal_subscription: m.app.native_to_universal_subscription,
+    native_tvod: configs.native_tvod,
     favorites_via_api: m.app.favorites_via_api,
     universal_tvod: m.app.universal_tvod,
     enable_device_linking: configs.enable_device_linking,

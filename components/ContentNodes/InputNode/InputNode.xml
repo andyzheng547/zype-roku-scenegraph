@@ -2,9 +2,9 @@
 
 <component name="InputNode" extends="ContentNode">
 
-	<interface>
+  <interface>
     <field id="name" type="string" />
     <field id="value" type="string" />
-	</interface>
+  </interface>
 
 </component>

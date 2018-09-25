@@ -99,7 +99,11 @@ Sub OnFocusedChildChange()
 
       logged_in = (m.global.auth.isLoggedIn <> invalid and m.global.auth.isLoggedIn <> false)
 
-      if m.global.device_linking and requiresNonSvodEntitlement and logged_in = false
+      if m.global.device_linking and m.global.native_tvod
+        m.top.canWatchVideo = false
+        AddActionButtons()
+
+      else if m.global.device_linking and requiresNonSvodEntitlement and logged_in = false
         m.top.canWatchVideo = false
         AddSigninButton()
       else if m.global.device_linking and requiresNonSvodEntitlement and logged_in = true
@@ -243,7 +247,11 @@ Sub OnContentChange()
 
         logged_in = (m.global.auth.isLoggedIn <> invalid and m.global.auth.isLoggedIn <> false)
 
-        if m.global.device_linking and requiresNonSvodEntitlement and logged_in = false
+        if m.global.device_linking and m.global.native_tvod
+          m.top.canWatchVideo = false
+          AddActionButtons()
+
+        else if m.global.device_linking and requiresNonSvodEntitlement and logged_in = false
           m.top.canWatchVideo = false
           AddSigninButton()
         else if m.global.device_linking and requiresNonSvodEntitlement and logged_in = true
@@ -328,10 +336,17 @@ Sub AddButtons()
 End Sub
 
 Sub AddActionButtons()
-    if m.top.content <> invalid then
-        btns = [ { title: m.global.labels.subscribe_button, role: "transition", target: "AuthSelection" } ]
-        m.buttons.content = m.content_helpers.oneDimList2ContentNode(btns, "ButtonNode")
+  if m.top.content <> invalid then
+    if m.top.content.subscriptionRequired
+      btns = [ { title: m.global.labels.subscribe_button, role: "transition", target: "AuthSelection" } ]
+      m.buttons.content = m.content_helpers.oneDimList2ContentNode(btns, "ButtonNode")
+    else if m.top.content.purchaseRequired
+      purchaseButtonText = "Purchase Video - " + m.top.content.id
+
+      btns = [ { title: purchaseButtonText, role: "transition", target: "PurchaseScreen" } ]
+      m.buttons.content = m.content_helpers.oneDimList2ContentNode(btns, "ButtonNode")
     end if
+  end if
 End Sub
 
 sub AddSigninButton()
