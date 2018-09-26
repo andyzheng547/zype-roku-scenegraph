@@ -18,7 +18,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
   result = false
 
   if key = "down"
-    m.oauthButton.setFocus(true)
+    if m.global.auth.isLoggedIn = false then m.oauthButton.setFocus(true)
   else if key = "up"
     m.purchaseButtons.setFocus(true)
   else if key = "back"
@@ -31,6 +31,24 @@ end function
 function onVisibleChange() as void
   if m.top.visible = true
     m.PurchaseButtons.setFocus(true)
+
+    if m.global.device_linking = true
+      if m.global.auth.isLoggedIn = false then
+        btn = [{title: m.global.labels.sign_in_button, role: "transition", target: "UniversalAuthSelection"}]
+        m.oauthButton.content = m.contentHelpers.oneDimList2ContentNode(btn, "ButtonNode")
+
+        m.oauthLabel.translation = [135,0]
+        m.oauthLabel.text = m.global.labels.already_have_account_label
+        m.oauthLabel.visible = true
+      else
+        m.oauthButton.content = invalid
+
+        m.oauthLabel.translation = [135,0]
+        m.oauthLabel.text = m.global.labels.logged_in_header_label + m.global.auth.email
+        m.oauthLabel.visible = true
+      end if
+    end if
+
   end if
 end function
 

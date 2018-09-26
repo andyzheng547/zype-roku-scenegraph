@@ -341,7 +341,7 @@ Sub AddActionButtons()
       btns = [ { title: m.global.labels.subscribe_button, role: "transition", target: "AuthSelection" } ]
       m.buttons.content = m.content_helpers.oneDimList2ContentNode(btns, "ButtonNode")
     else if m.top.content.purchaseRequired
-      purchaseButtonText = "Purchase Video - " + m.top.content.id
+      purchaseButtonText = "Purchase video - " + m.top.content.storeProduct.cost
 
       btns = [ { title: purchaseButtonText, role: "transition", target: "PurchaseScreen" } ]
       m.buttons.content = m.content_helpers.oneDimList2ContentNode(btns, "ButtonNode")

@@ -15,6 +15,9 @@
     <field id="rentalRequired" type="boolean" />
     <field id="passRequired" type="boolean" />
 
+    <!-- Associated in-store product (if tvod) -->
+    <field id="storeProduct" type="assocarray" />
+
     <!-- for pagination -->
     <field id="isPaginator" type="boolean" />
     <field id="nextPage" type="integer" />

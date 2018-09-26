@@ -253,8 +253,8 @@ Sub SetHomeScene(contentID = invalid, mediaType = invalid)
 
     print "App done loading"
 
-    purchases = m.roku_store_service.getPurchases()
-    stop
+    ' purchases = m.roku_store_service.getPurchases()
+    ' stop
 
     while(true)
         msg = wait(0, m.port)
@@ -989,6 +989,16 @@ Function ParseContent(list As Object)
                 item[key] = itemAA[key]
             end for
 
+            if item.purchaseRequired
+              ' TODO: Add logic for finding right sku when platform supports marketplace ids
+
+              ' use hard coded sku for now
+              consumables = m.roku_store_service.getConsumables()
+              purchaseItem = consumables[0]
+
+              item.storeProduct = purchaseItem
+            end if
+
             row.appendChild(item)
         end for
 
@@ -1481,8 +1491,8 @@ function handleNativePurchase() as void
   StartLoader()
 
   ' Get updated user info
-  user_info = m.current_user.getInfo()
-  m.auth_state_service.updateAuthWithUserInfo(user_info)
+  userInfo = m.current_user.getInfo()
+  m.auth_state_service.updateAuthWithUserInfo(userInfo)
 
   order = [{
     code: m.PurchaseScreen.purchaseItem.code,
@@ -1491,11 +1501,26 @@ function handleNativePurchase() as void
 
   purchase_item = m.roku_store_service.makePurchase(order)
   EndLoader()
-  m.PurchaseScreen.visible = true
-  m.PurchaseScreen.setFocus(true)
 
   if purchase_item.success
-    stop
+    ' TODO: refactor this later to send receipt data to entitle user account to video
+    ' - need to send app id, consumer id, video id, and receipt
+
+    m.native_email_storage.DeleteEmail()
+    m.native_email_storage.WriteEmail(userInfo.email)
+
+    EndLoader()
+
+    ' Refresh lock icons with grid screen content callback
+    m.scene.gridContent = m.gridContent
+
+    m.scene.goBackToNonAuth = true
+
+    ' details screen should update self
+    m.detailsScreen.content = m.detailsScreen.content
+
+    sleep(500)
+    CreateDialog(m.scene, "Success", "Thank you for purchasing the video.", ["Dismiss"])
   else
     m.PurchaseScreen.findNode("PurchaseButtons").setFocus(true)
     CreateDialog(m.scene, "Incomplete", "Was not able to complete purchase. Please try again later.", ["Close"])
