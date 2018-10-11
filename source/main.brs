@@ -55,6 +55,7 @@ Sub SetHomeScene(contentID = invalid, mediaType = invalid)
     m.auth_state_service = AuthStateService()
     m.bifrost_service = BiFrostService()
     m.raf_service = RafService()
+    m.marketplaceConnect = MarketplaceConnectService()
 
     m.native_email_storage =  NativeEmailStorageService()
 
@@ -128,6 +129,12 @@ Sub SetHomeScene(contentID = invalid, mediaType = invalid)
     m.detailsScreen.autoplay = m.app.autoplay
 
     m.AuthSelection = m.scene.findNode("AuthSelection")
+
+    ' TODO: Add logic here to filter native plans by matching marketplace connect ids
+    ' rokuPlans = m.roku_store_service.GetNativeSubscriptionPlans()
+    ' filteredPlans = m.marketplaceConnect.getSubscriptionPlans(rokuPlans)
+    ' m.AuthSelection.plans = filteredPlans
+
     m.AuthSelection.plans = m.roku_store_service.GetNativeSubscriptionPlans()
     m.AuthSelection.observeField("itemSelected", m.port)
     m.AuthSelection.observeField("planSelected", m.port)
@@ -1363,13 +1370,7 @@ function handleButtonEvents(index, screen)
     else if button_role = "transition" and button_target = "AuthSelection"
       m.scene.transitionTo = "AuthSelection"
     else if button_role = "transition" and button_target = "PurchaseScreen"
-      ' TODO: Add logic for determining what sku/code to purchase
-
-      ' Use hard coded consumable for now
-      consumables = m.roku_store_service.getConsumables()
-      purchaseItem = consumables[0]
-
-      m.PurchaseScreen.purchaseItem = purchaseItem
+      m.PurchaseScreen.purchaseItem = screen.content.storeProduct
       m.PurchaseScreen.itemName = screen.content.title
       m.PurchaseScreen.videoId = screen.content.id
 

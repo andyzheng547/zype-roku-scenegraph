@@ -206,6 +206,7 @@ Function PrepareVideoPlayer()
         m.top.content.TITLE = nextVideoObject.title
         m.top.content.URL = nextVideoObject.url
         m.top.content.POSTERTHUMBNAIL = nextVideoObject.posterThumbnail
+        m.top.content.storeProduct = nextVideoObject.storeProduct
 
         print "nextVideoObject: "; nextVideoObject
         print "New: "; m.top.content
@@ -337,15 +338,19 @@ End Sub
 
 Sub AddActionButtons()
   if m.top.content <> invalid then
+    btns = []
     if m.top.content.subscriptionRequired
-      btns = [ { title: m.global.labels.subscribe_button, role: "transition", target: "AuthSelection" } ]
-      m.buttons.content = m.content_helpers.oneDimList2ContentNode(btns, "ButtonNode")
-    else if m.top.content.purchaseRequired
+      btns.push({ title: m.global.labels.subscribe_button, role: "transition", target: "AuthSelection" })
+
+    end if
+    if m.top.content.purchaseRequired and m.global.native_tvod
       purchaseButtonText = "Purchase video - " + m.top.content.storeProduct.cost
 
-      btns = [ { title: purchaseButtonText, role: "transition", target: "PurchaseScreen" } ]
-      m.buttons.content = m.content_helpers.oneDimList2ContentNode(btns, "ButtonNode")
+      btns.push({ title: purchaseButtonText, role: "transition", target: "PurchaseScreen" })
     end if
+
+    m.buttons.content = m.content_helpers.oneDimList2ContentNode(btns, "ButtonNode")
+
   end if
 End Sub
 
