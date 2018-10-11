@@ -105,7 +105,16 @@ Sub OnFocusedChildChange()
 
       else if m.global.device_linking and requiresNonSvodEntitlement and logged_in = false
         m.top.canWatchVideo = false
-        AddSigninButton()
+        if no_sub_needed
+          AddSigninButton()
+        else
+          if is_subscribed
+            m.top.canWatchVideo = true
+            AddButtons()
+          else
+            AddActionButtons()
+          end if
+        end if
       else if m.global.device_linking and requiresNonSvodEntitlement and logged_in = true
         m.top.canWatchVideo = true
         AddButtons()
@@ -254,7 +263,12 @@ Sub OnContentChange()
 
         else if m.global.device_linking and requiresNonSvodEntitlement and logged_in = false
           m.top.canWatchVideo = false
-          AddSigninButton()
+          if is_subscribed
+            m.top.canWatchVideo = true
+            AddButtons()
+          else
+            AddActionButtons()
+          end if
         else if m.global.device_linking and requiresNonSvodEntitlement and logged_in = true
           m.top.canWatchVideo = true
           AddButtons()
